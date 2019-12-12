@@ -31,7 +31,7 @@ class TeachingPeriodTest < ActiveSupport::TestCase
   end
 
   # Get a teaching period's details
-  def test_get_teaching_periods_details
+  def test_get_a_teaching_periods_details
     expected_tp = TeachingPeriod.second
 
     # perform the GET 
@@ -71,24 +71,28 @@ class TeachingPeriodTest < ActiveSupport::TestCase
     assert_equal num_weeks, to_update.number_of_weeks
   end
 
-  def test_put_activity_types
+  def test_put_teaching_period
     data_to_put = {
-      activity_type: FactoryGirl.build(:activity_type),
+      teaching_period: FactoryGirl.build(:teaching_period),
       auth_token: auth_token
     }
 
-    # Update activity_type with id = 1
-    put_json '/api/activity_types/1', data_to_put
+    # Update teaching period with id = 1
+    put_json '/api/teaching_periods/1', data_to_put
+    
+    # check if the POST get through
     assert_equal 200, last_response.status
 
-    response_keys = %w(name abbreviation)
-    first_activity_type = ActivityType.first
-    assert_json_matches_model(last_response_body, first_activity_type, response_keys)
+    # check if the details posted match as expected
+    response_keys = %w(period year start_date end_date active_until)
+    first_teaching_period = TeachingPeriod.first
+    assert_json_matches_model(last_response_body, first_teaching_period, response_keys)
   end
 
   # POST tests
+  # Post teaching period
   def test_post_teaching_period
-    # the number of teaching period
+    # the number of teaching period before post
     number_of_tp = TeachingPeriod.count
 
     # the dummy teaching period that we want to post/create
@@ -110,5 +114,49 @@ class TeachingPeriodTest < ActiveSupport::TestCase
 
     # check if one more teaching period is created
     assert_equal TeachingPeriod.count, number_of_tp + 1
+  end
+
+  # DELETE tests
+  # Delete a teaching period
+  def test_delete_teaching_period
+    number_of_tp = TeachingPeriod.all.count
+
+    teaching_period = TeachingPeriod.all.first
+    id_of_tp = teaching_period.id
+    
+    # perform the delete
+    delete_json with_auth_token"/api/teaching_periods/#{teaching_period.id}"
+    
+    # Check if the delete get through
+    assert_equal 200, last_response.status
+    
+    # check if the number of teaching period is still the same
+    #assert_equal TeachingPeriod.count, number_of_tp -1
+
+    # Check that you can't find the deleted id
+    #refute TeachingPeriod.exists?(id_of_tp)
+    
+  end
+  
+  # Delete a teaching period using unauthorised account
+  def test_student_delete_teaching_period
+    user = FactoryGirl.build(:user, :student)
+
+    number_of_tp = TeachingPeriod.count
+
+    teaching_period = TeachingPeriod.second
+    id_of_tp = teaching_period.id
+
+    # perform the delete
+    delete_json with_auth_token("/api/teaching_periods/#{id_of_tp}", user)
+
+    # check if the delete does not get through
+    assert_equal 403, last_response.status
+
+    # check if the number of teaching period is still the same
+    assert_equal TeachingPeriod.count, number_of_tp
+
+    # Check that you still can find the deleted id
+    assert TeachingPeriod.exists?(id_of_tp)
   end
 end
